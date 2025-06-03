@@ -46,13 +46,13 @@ jobs:
       with:
         msystem: MINGW64
         update: true
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-tcl git zip make
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-make git zip
 
     - name: Set up environment (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc g++ make git zip tcl
+        sudo apt-get install -y gcc g++ make git zip
         if [ "${{ matrix.arch }}" = "arm" ] || [ "${{ matrix.arch }}" = "arm64" ]; then
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
         fi
@@ -60,7 +60,7 @@ jobs:
     - name: Set up environment (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        brew install git zip tcl-tk
+        brew install git zip
         xcode-select --install || true
 
     - name: Clone or update SQLite repository
@@ -76,12 +76,13 @@ jobs:
           git checkout sqlite3-rsync
         fi
 
-    - name: Generate sqlite3.c (Windows)
-      if: matrix.os == 'windows-latest'
+    - name: Generate sqlite3.c
       working-directory: ./sqlite
       shell: msys2 {0}
+      if: matrix.os == 'windows-latest'
       run: |
-        tclsh tool/mksqlite3c.tcl
+        ./configure
+        mingw32-make sqlite3.c
         ls -l sqlite3.c
 
     - name: Generate sqlite3.c (Linux and macOS)
