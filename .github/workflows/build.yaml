@@ -2,11 +2,11 @@ name: Build sqlite3_rsync
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -29,98 +29,98 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Cache SQLite repository
-      uses: actions/cache@v4
-      with:
-        path: ./sqlite
-        key: sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('**/sqlite/.git/HEAD') }}
-        restore-keys: |
-          sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-
+      - name: Cache SQLite repository
+        uses: actions/cache@v4
+        with:
+          path: ./sqlite
+          key: sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('**/sqlite/.git/HEAD') }}
+          restore-keys: |
+            sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-
 
-    - name: Set up environment (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc g++ make git zip
-        if [ "${{ matrix.arch }}" = "arm" ] || [ "${{ matrix.arch }}" = "arm64" ]; then
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-        fi
+      - name: Set up environment (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ make git zip
+          if [ "${{ matrix.arch }}" = "arm" ] || [ "${{ matrix.arch }}" = "arm64" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          fi
 
-    - name: Set up environment (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install git zip
-        xcode-select --install || true
+      - name: Set up environment (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install git zip
+          xcode-select --install || true
 
-    - name: Clone or update SQLite repository
-      shell: bash
-      run: |
-        if [ -d "sqlite" ]; then
-          cd sqlite
-          git fetch origin
-          git checkout sqlite3-rsync
-        else
-          git clone https://github.com/sqlite/sqlite.git
-          cd sqlite
-          git checkout sqlite3-rsync
-        fi
+      - name: Clone or update SQLite repository
+        shell: bash
+        run: |
+          if [ -d "sqlite" ]; then
+            cd sqlite
+            git fetch origin
+            git checkout sqlite3-rsync
+          else
+            git clone https://github.com/sqlite/sqlite.git
+            cd sqlite
+            git checkout sqlite3-rsync
+          fi
 
-    - name: Generate sqlite3.c
-      working-directory: ./sqlite
-      run: |
-        ./configure
-        make sqlite3.c
-        ls -l sqlite3.c
+      - name: Generate sqlite3.c
+        working-directory: ./sqlite
+        run: |
+          ./configure
+          make sqlite3.c
+          ls -l sqlite3.c
 
-    - name: Compile sqlite3-rsync (Linux x64)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
-      working-directory: ./sqlite/tool
-      run: |
-        gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
-        ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
+      - name: Compile sqlite3-rsync (Linux x64)
+        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
+        working-directory: ./sqlite/tool
+        run: |
+          gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
+          ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
 
-    - name: Compile sqlite3-rsync (Linux ARM)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm'
-      working-directory: ./sqlite/tool
-      run: |
-        aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
-        file sqlite3-rsync-${{ matrix.os }}-arm
+      - name: Compile sqlite3-rsync (Linux ARM)
+        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm'
+        working-directory: ./sqlite/tool
+        run: |
+          aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
+          file sqlite3-rsync-${{ matrix.os }}-arm
 
-    - name: Compile sqlite3-rsync (Linux ARM64)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
-      working-directory: ./sqlite/tool
-      run: |
-        aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
-        file sqlite3-rsync-${{ matrix.os }}-arm64
+      - name: Compile sqlite3-rsync (Linux ARM64)
+        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
+        working-directory: ./sqlite/tool
+        run: |
+          aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
+          file sqlite3-rsync-${{ matrix.os }}-arm64
 
-    - name: Compile sqlite3-rsync (macOS x64)
-      if: matrix.os == 'macos-latest' && matrix.arch == 'x64'
-      working-directory: ./sqlite/tool
-      run: |
-        arch -x86_64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
-        ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
+      - name: Compile sqlite3-rsync (macOS x64)
+        if: matrix.os == 'macos-latest' && matrix.arch == 'x64'
+        working-directory: ./sqlite/tool
+        run: |
+          arch -x86_64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
+          ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
 
-    - name: Compile sqlite3-rsync (macOS ARM64)
-      if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
-      working-directory: ./sqlite/tool
-      run: |
-        arch -arm64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
-        ./sqlite3-rsync-${{ matrix.os }}-arm64 --help
+      - name: Compile sqlite3-rsync (macOS ARM64)
+        if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
+        working-directory: ./sqlite/tool
+        run: |
+          arch -arm64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
+          ./sqlite3-rsync-${{ matrix.os }}-arm64 --help
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
-        path: ./sqlite/tool/sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
+          path: ./sqlite/tool/sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
 
   release:
-    needs: build
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
+  needs: build
+  if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+  runs-on: ubuntu-latest
+  steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -146,7 +146,7 @@ jobs:
         done
         ls -l release
         cd release
-        zip -r ../sqlite3-rsyncaries-bin-${{ github.ref_name }}.zip .
+        zip -r ../sqlite3-rsync-binaries-${{ github.ref_name }}.zip .
         ls -l ..
       shell: bash
 
