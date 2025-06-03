@@ -50,7 +50,7 @@ jobs:
           sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-
 
     - name: Set up environment (Linux)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'Ubuntu-latest'
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc g++ make git zip
@@ -76,26 +76,6 @@ jobs:
       with:
         msbuild-architecture: x64
 
-    - name: Install Tcl (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: powershell
-      run: |
-        # Использование установщика из репозитория
-        $installerPath = "ActiveTcl-8.6.14.0000-MSWin32-x64-89732998.exe"
-        if (Test-Path $installerPath) {
-          Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -NoNewWindow
-          Write-Host "Tcl installed from $installerPath"
-        } else {
-          throw "Tcl installer $installerPath not found in repository"
-        }
-        # Проверка установки Tcl
-        $tclPath = "C:\Tcl\bin\tclsh86t.exe"
-        if (Test-Path $tclPath) {
-          Write-Host "Tcl installed successfully at $tclPath"
-        } else {
-          throw "Tcl not found after installation"
-        }
-
     - name: Clone or update SQLite repository
       shell: bash
       run: |
@@ -109,7 +89,8 @@ jobs:
           git checkout sqlite3-rsync
         fi
 
-    - name: Generate sqlite3.c
+    - name: Generate sqlite3.c (non-Windows)
+      if: matrix.os != 'windows-latest'
       working-directory: ./sqlite
       run: |
         ./configure
@@ -117,7 +98,7 @@ jobs:
         ls -l sqlite3.c
 
     - name: Compile sqlite3-rsync (Linux x64)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
+      if: matrix.os == 'Ubuntu-latest' && matrix.arch == 'x64'
       working-directory: ./sqlite/tool
       run: |
         gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
@@ -125,7 +106,7 @@ jobs:
         ls -l sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
 
     - name: Compile sqlite3-rsync (Linux ARM)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm'
+      if: matrix.os == 'Ubuntu-latest' && matrix.arch == 'arm'
       working-directory: ./sqlite/tool
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
@@ -133,7 +114,7 @@ jobs:
         ls -l sqlite3-rsync-${{ matrix.os }}-arm
 
     - name: Compile sqlite3-rsync (Linux ARM64)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
+      if: matrix.os == 'Ubuntu-latest' && matrix.arch == 'arm64'
       working-directory: ./sqlite/tool
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
@@ -158,13 +139,14 @@ jobs:
 
     - name: Compile sqlite3-rsync (Windows x64)
       if: matrix.os == 'windows-latest' && matrix.arch == 'x64'
-      working-directory: ./sqlite
+      working-directory: ./sqlite/tool
       shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        nmake /f Makefile.msc sqlite3.c
-        cd tool
-        cl -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}.exe sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB -I.. -link -machine:x64
+        copy ..\..\tools\sqlite3.c .
+        copy ..\..\tools\sqlite3.h .
+        copy ..\..\tools\sqlite3-rsync.c .
+        cl -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}.exe sqlite3-rsync.c sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB -I. -link -machine:x64
         dir sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}.exe
 
     - name: Upload artifact
