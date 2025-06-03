@@ -63,22 +63,8 @@ jobs:
         brew install git zip tcl-tk
         xcode-select --install || true
 
-    - name: Clone or update SQLite repository (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: msys2 {0}
-      run: |
-        if (Test-Path "sqlite") {
-          cd sqlite
-          git fetch origin
-          git checkout sqlite3-rsync
-        } else {
-          git clone https://github.com/sqlite/sqlite.git
-          cd sqlite
-          git checkout sqlite3-rsync
-        }
-
-    - name: Clone or update SQLite repository (Linux and macOS)
-      if: matrix.os != 'windows-latest'
+    - name: Clone or update SQLite repository
+      shell: bash
       run: |
         if [ -d "sqlite" ]; then
           cd sqlite
