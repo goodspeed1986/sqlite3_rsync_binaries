@@ -1,0 +1,1 @@
+Sqlite3_rsync binaries for different platforms and OS
