@@ -1,3 +1,4 @@
+
 name: Build sqlite3_rsync
 
 on:
@@ -12,9 +13,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
+        os: [ubuntu-latest, macos-latest]
         arch: [x64]
         include:
           - os: ubuntu-latest
@@ -68,18 +67,18 @@ jobs:
     - name: Clone or update SQLite repository
       shell: bash
       run: |
-        if test -d "sqlite"; then
+        if [ -d "sqlite" ]; then
           cd sqlite
           git fetch origin
-          git checkout version-3.50.0
+          git checkout sqlite3-rsync
         else
-          git clone --branch version-3.50.0 https://github.com/sqlite/sqlite.git
+          git clone https://github.com/sqlite/sqlite.git
           cd sqlite
+          git checkout sqlite3-rsync
         fi
 
     - name: Generate sqlite3.c
       working-directory: ./sqlite
-      shell: bash
       run: |
         ./configure
         make sqlite3.c
@@ -88,7 +87,6 @@ jobs:
     - name: Compile sqlite3-rsync (Linux x64)
       if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
       working-directory: ./sqlite/tool
-      shell: bash
       run: |
         gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
@@ -97,7 +95,6 @@ jobs:
     - name: Compile sqlite3-rsync (Linux ARM)
       if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm'
       working-directory: ./sqlite/tool
-      shell: bash
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         file ./sqlite3-rsync-${{ matrix.os }}-arm
@@ -106,7 +103,6 @@ jobs:
     - name: Compile sqlite3-rsync (Linux ARM64)
       if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
       working-directory: ./sqlite/tool
-      shell: bash
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         file ./sqlite3-rsync-${{ matrix.os }}-arm64
@@ -115,7 +111,6 @@ jobs:
     - name: Compile sqlite3-rsync (macOS x64)
       if: matrix.os == 'macos-latest' && matrix.arch == 'x64'
       working-directory: ./sqlite/tool
-      shell: bash
       run: |
         arch -x86_64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
@@ -124,7 +119,6 @@ jobs:
     - name: Compile sqlite3-rsync (macOS ARM64)
       if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
       working-directory: ./sqlite/tool
-      shell: bash
       run: |
         arch -arm64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         ./sqlite3-rsync-${{ matrix.os }}-arm64 --help
