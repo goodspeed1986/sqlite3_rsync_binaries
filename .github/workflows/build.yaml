@@ -1,3 +1,4 @@
+
 name: Build sqlite3_rsync
 
 on:
@@ -79,9 +80,24 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: powershell
       run: |
-        Invoke-WebRequest -Uri https://www.activestate.com/products/activetcl/activetcl-downloads/ -OutFile tcl-installer.exe
-        Start-Process -FilePath .\tcl-installer.exe -ArgumentList "/S" -Wait
-        Remove-Item tcl-installer.exe
+        # Установка Tcl через Chocolatey
+        try {
+          choco install tcl -y --no-progress
+        } catch {
+          Write-Host "Chocolatey installation failed, trying direct download..."
+          # Резервный вариант: прямая загрузка ActiveTcl
+          $url = "https://github.com/ActiveState/app-tcl/releases/download/8.6.13.22061904/ActiveTcl8.6.13.22061904-windows-x64-threaded.exe"
+          Invoke-WebRequest -Uri $url -OutFile tcl-installer.exe -ErrorAction Stop
+          Start-Process -FilePath .\tcl-installer.exe -ArgumentList "/S" -Wait -NoNewWindow
+          Remove-Item tcl-installer.exe
+        }
+        # Проверка установки Tcl
+        $tclPath = "C:\Tcl\bin\tclsh86t.exe"
+        if (Test-Path $tclPath) {
+          Write-Host "Tcl installed successfully at $tclPath"
+        } else {
+          throw "Tcl not found after installation"
+        }
 
     - name: Clone or update SQLite repository
       shell: bash
