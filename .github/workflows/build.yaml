@@ -12,7 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         arch: [x64]
         include:
           - os: ubuntu-latest
@@ -39,14 +39,6 @@ jobs:
         key: sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('**/sqlite/.git/HEAD') }}
         restore-keys: |
           sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-
-
-    - name: Set up environment (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: msys2/setup-msys2@v2
-      with:
-        msystem: MINGW64
-        update: true
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-tcl git zip
 
     - name: Set up environment (Linux)
       if: matrix.os == 'ubuntu-latest'
@@ -76,38 +68,12 @@ jobs:
           git checkout sqlite3-rsync
         fi
 
-    - name: Prepare tsrc directory (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: ./sqlite
-      shell: msys2 {0}
-      run: |
-        mkdir -p tsrc
-        cp *.c *.h tsrc/
-        ls -l tsrc/
-
-    - name: Generate sqlite3.c (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: ./sqlite
-      shell: msys2 {0}
-      run: |
-        tclsh tool/mksqlite3c.tcl
-        ls -l sqlite3.c
-
-    - name: Generate sqlite3.c (Linux and macOS)
-      if: matrix.os != 'windows-latest'
+    - name: Generate sqlite3.c
       working-directory: ./sqlite
       run: |
         ./configure
         make sqlite3.c
         ls -l sqlite3.c
-
-    - name: Compile sqlite3-rsync (Windows x64)
-      if: matrix.os == 'windows-latest' && matrix.arch == 'x64'
-      working-directory: ./sqlite/tool
-      shell: msys2 {0}
-      run: |
-        gcc -o sqlite3-rsync.exe sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
-        ./sqlite3-rsync.exe --help
 
     - name: Compile sqlite3-rsync (Linux x64)
       if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
