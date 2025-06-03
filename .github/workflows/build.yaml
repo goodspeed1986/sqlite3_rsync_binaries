@@ -46,13 +46,13 @@ jobs:
       with:
         msystem: MINGW64
         update: true
-        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-make git zip
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-make mingw-w64-x86_64-autoconf mingw-w64-x86_64-automake git zip
 
     - name: Set up environment (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc g++ make git zip
+        sudo apt-get install -y gcc g++ make autoconf automake git zip
         if [ "${{ matrix.arch }}" = "arm" ] || [ "${{ matrix.arch }}" = "arm64" ]; then
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
         fi
@@ -60,7 +60,7 @@ jobs:
     - name: Set up environment (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        brew install git zip
+        brew install git zip autoconf automake
         xcode-select --install || true
 
     - name: Clone or update SQLite repository
@@ -75,6 +75,21 @@ jobs:
           cd sqlite
           git checkout sqlite3-rsync
         fi
+
+    - name: Generate configure script
+      working-directory: ./sqlite
+      shell: msys2 {0}
+      if: matrix.os == 'windows-latest'
+      run: |
+        autoconf
+        ls -l configure
+
+    - name: Generate configure script (Linux and macOS)
+      if: matrix.os != 'windows-latest'
+      working-directory: ./sqlite
+      run: |
+        autoconf
+        ls -l configure
 
     - name: Generate sqlite3.c
       working-directory: ./sqlite
