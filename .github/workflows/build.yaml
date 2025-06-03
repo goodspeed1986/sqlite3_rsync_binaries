@@ -63,12 +63,17 @@ jobs:
         brew install git zip tcl-tk
         xcode-select --install || true
 
-    - name: Clone SQLite repository
-      if: steps.cache.outputs.cache-hit != 'true'
+    - name: Clone or update SQLite repository
       run: |
-        git clone https://github.com/sqlite/sqlite.git
-        cd sqlite
-        git checkout sqlite3-rsync
+        if [ -d "sqlite" ]; then
+          cd sqlite
+          git fetch origin
+          git checkout sqlite3-rsync
+        else
+          git clone https://github.com/sqlite/sqlite.git
+          cd sqlite
+          git checkout sqlite3-rsync
+        fi
 
     - name: Generate sqlite3.c (Windows)
       if: matrix.os == 'windows-latest'
