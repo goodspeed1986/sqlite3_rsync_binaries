@@ -15,7 +15,6 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-          - windows-latest
         arch: [x64]
         include:
           - os: ubuntu-latest
@@ -27,9 +26,6 @@ jobs:
           - os: macos-latest
             arch: arm64
             build-platform: macos-arm64
-          - os: windows-latest
-            arch: x64
-            build-platform: windows-x64
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
@@ -69,28 +65,19 @@ jobs:
         # Проверка доступности gcc
         gcc --version || { echo "gcc not found"; exit 1; }
 
-    - name: Set up environment (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: microsoft/setup-msbuild@v2
-      with:
-        msbuild-architecture: x64
-
-    - name: Clone or update SQLite repository (non-Windows)
-      if: matrix.os != 'windows-latest'
+    - name: Clone or update SQLite repository
       shell: bash
       run: |
         if test -d "sqlite"; then
           cd sqlite
           git fetch origin
-          git checkout master
+          git checkout version-3.50.0
         else
-          git clone https://github.com/sqlite/sqlite.git
+          git clone --branch version-3.50.0 https://github.com/sqlite/sqlite.git
           cd sqlite
-          git checkout master
         fi
 
-    - name: Generate sqlite3.c (non-Windows)
-      if: matrix.os != 'windows-latest'
+    - name: Generate sqlite3.c
       working-directory: ./sqlite
       shell: bash
       run: |
@@ -143,23 +130,11 @@ jobs:
         ./sqlite3-rsync-${{ matrix.os }}-arm64 --help
         ls -l sqlite3-rsync-${{ matrix.os }}-arm64
 
-    - name: Compile sqlite3-rsync (Windows x64)
-      if: matrix.os == 'windows-latest' && matrix.arch == 'x64'
-      working-directory: ./sqlite/tool
-      shell: cmd
-      run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        copy ..\..\tools\sqlite3.c .
-        copy ..\..\tools\sqlite3.h .
-        copy ..\..\tools\sqlite3-rsync.c .
-        cl -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}.exe sqlite3-rsync.c sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB -I. -link -machine:x64
-        dir sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}.exe
-
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
-        path: ./sqlite/tool/sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+        path: ./sqlite/tool/sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
 
   tag-and-release:
     needs: build
@@ -229,8 +204,8 @@ jobs:
         ls -l release
         # Проверка количества файлов
         file_count=$(ls -1 release | wc -l)
-        if [ "$file_count" -ne 6 ]; then
-          echo "Error: Expected 6 binaries, but found $file_count"
+        if [ "$file_count" -ne 5 ]; then
+          echo "Error: Expected 5 binaries, but found $file_count"
           exit 1
         fi
         cd release
@@ -247,11 +222,10 @@ jobs:
         tag_name: ${{ needs.tag-and-release.outputs.new_tag || github.ref_name }}
         release_name: sqlite3-rsync ${{ needs.tag-and-release.outputs.new_tag || github.ref_name }}
         body: |
-          Automated release of sqlite3-rsync for Linux, macOS, and Windows.
+          Automated release of sqlite3-rsync for Linux and macOS.
           Includes binaries for:
           - Ubuntu (x64, arm, arm64)
           - macOS (x64, arm64)
-          - Windows (x64)
         draft: false
         prerelease: false
 
