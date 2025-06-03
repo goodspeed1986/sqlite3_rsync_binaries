@@ -51,12 +51,18 @@ jobs:
         if [ "${{ matrix.arch }}" = "arm" ] || [ "${{ matrix.arch }}" = "arm64" ]; then
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
         fi
+        # Проверка установки компилятора для ARM
+        if [ "${{ matrix.arch }}" = "arm" ] || [ "${{ matrix.arch }}" = "arm64" ]; then
+          aarch64-linux-gnu-gcc --version || { echo "aarch64-linux-gnu-gcc not found"; exit 1; }
+        fi
 
     - name: Set up environment (macOS)
       if: matrix.os == 'macos-latest'
       run: |
         brew install git zip
         xcode-select --install || true
+        # Проверка доступности gcc
+        gcc --version || { echo "gcc not found"; exit 1; }
 
     - name: Clone or update SQLite repository
       shell: bash
@@ -84,6 +90,7 @@ jobs:
       run: |
         gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
+        ls -l sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
 
     - name: Compile sqlite3-rsync (Linux ARM)
       if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm'
@@ -91,6 +98,7 @@ jobs:
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         file ./sqlite3-rsync-${{ matrix.os }}-arm
+        ls -l sqlite3-rsync-${{ matrix.os }}-arm
 
     - name: Compile sqlite3-rsync (Linux ARM64)
       if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
@@ -98,6 +106,7 @@ jobs:
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         file ./sqlite3-rsync-${{ matrix.os }}-arm64
+        ls -l sqlite3-rsync-${{ matrix.os }}-arm64
 
     - name: Compile sqlite3-rsync (macOS x64)
       if: matrix.os == 'macos-latest' && matrix.arch == 'x64'
@@ -105,6 +114,7 @@ jobs:
       run: |
         arch -x86_64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         ./sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} --help
+        ls -l sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
 
     - name: Compile sqlite3-rsync (macOS ARM64)
       if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
@@ -112,6 +122,7 @@ jobs:
       run: |
         arch -arm64 gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
         ./sqlite3-rsync-${{ matrix.os }}-arm64 --help
+        ls -l sqlite3-rsync-${{ matrix.os }}-arm64
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -147,7 +158,7 @@ jobs:
           new_patch=$((patch + 1))
           new_tag="v$major.$minor.$new_patch"
         fi
-        echo "Creating tag $new_tag}"
+        echo "Creating tag $new_tag"
         git tag $new_tag
         git push origin $new_tag
         echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
@@ -175,13 +186,22 @@ jobs:
     - name: Create archive
       run: |
         mkdir -p release
-        for dir in artifacts/sqlite3-rsync-*; do
+        # Явно перебрать все директории артефактов
+        for dir in artifacts/*; do
           if [ -d "$dir" ]; then
-            platform=$(basename "$dir")
-            find "$dir" -type f -name "sqlite3-rsync-*" -exec cp {} release/ \;
+            binary=$(find "$dir" -type f -name "sqlite3-rsync-*")
+            if [ -n "$binary" ]; then
+              cp "$binary" release/
+            fi
           fi
         done
         ls -l release
+        # Проверка количества файлов
+        file_count=$(ls -1 release | wc -l)
+        if [ "$file_count" -ne 5 ]; then
+          echo "Error: Expected 5 binaries, but found $file_count"
+          exit 1
+        fi
         cd release
         zip -r ../sqlite3-rsync-binaries-${{ needs.tag-and-release.outputs.new_tag || github.ref_name }}.zip .
         ls -l ..
