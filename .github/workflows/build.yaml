@@ -80,16 +80,13 @@ jobs:
       if: matrix.os == 'windows-latest'
       shell: powershell
       run: |
-        # Прямая загрузка ActiveTcl
-        $url = "https://dl.activestate.com/camel-builds/ActiveTcl/MSWin32-x64/20250111T170338Z/ActiveTcl-8.6.14.0000-MSWin32-x64-89732998.exe"
-        $response = Invoke-WebRequest -Uri $url -Method Head -ErrorAction Stop
-        if ($response.StatusCode -eq 200) {
-          Invoke-WebRequest -Uri $url -OutFile tcl-installer.exe -ErrorAction Stop
-          Start-Process -FilePath .\tcl-installer.exe -ArgumentList "/S" -Wait -NoNewWindow
-          Remove-Item tcl-installer.exe
-          Write-Host "Tcl installed via direct download from $url"
+        # Использование установщика из репозитория
+        $installerPath = "ActiveTcl-8.6.14.0000-MSWin32-x64-89732998.exe"
+        if (Test-Path $installerPath) {
+          Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -NoNewWindow
+          Write-Host "Tcl installed from $installerPath"
         } else {
-          throw "Failed to verify or download ActiveTcl installer from $url. Status code: $($response.StatusCode)"
+          throw "Tcl installer $installerPath not found in repository"
         }
         # Проверка установки Tcl
         $tclPath = "C:\Tcl\bin\tclsh86t.exe"
