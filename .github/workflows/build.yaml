@@ -13,13 +13,13 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-20.04, macos-latest]
         arch: [x64]
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             arch: arm
             build-platform: linux-arm
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             arch: arm64
             build-platform: linux-arm64
           - os: macos-latest
@@ -44,7 +44,7 @@ jobs:
           sqlite-repo-${{ runner.os }}-${{ matrix.arch }}-
 
     - name: Set up environment (Linux)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-20.04'
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc g++ make git zip
@@ -85,7 +85,7 @@ jobs:
         ls -l sqlite3.c
 
     - name: Compile sqlite3-rsync (Linux x64)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'x64'
+      if: matrix.os == 'ubuntu-20.04' && matrix.arch == 'x64'
       working-directory: ./sqlite/tool
       run: |
         gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
@@ -93,7 +93,7 @@ jobs:
         ls -l sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }}
 
     - name: Compile sqlite3-rsync (Linux ARM)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm'
+      if: matrix.os == 'ubuntu-20.04' && matrix.arch == 'arm'
       working-directory: ./sqlite/tool
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
@@ -101,7 +101,7 @@ jobs:
         ls -l sqlite3-rsync-${{ matrix.os }}-arm
 
     - name: Compile sqlite3-rsync (Linux ARM64)
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
+      if: matrix.os == 'ubuntu-20.04' && matrix.arch == 'arm64'
       working-directory: ./sqlite/tool
       run: |
         aarch64-linux-gnu-gcc -o sqlite3-rsync-${{ matrix.os }}-${{ matrix.arch }} sqlite3-rsync.c ../sqlite3.c -DSQLITE_ENABLE_DBPAGE_VTAB
@@ -133,7 +133,7 @@ jobs:
   tag-and-release:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       new_tag: ${{ steps.create_tag.outputs.new_tag }}
     steps:
@@ -167,7 +167,7 @@ jobs:
   release:
     needs: [build, tag-and-release]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
